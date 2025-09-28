@@ -176,18 +176,43 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     try {
       console.log('Updating post:', { id, content: editContent.trim(), image_url: editImageUrl.trim() || null });
       
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('posts')
         .update({
           content: editContent.trim(),
           image_url: editImageUrl.trim() || null,
         })
         .eq('id', id)
+        .eq('author_name', currentUserName)
         .select();
 
       if (error) {
         console.error('Error updating post:', error);
-        alert(`Failed to update post: ${error.message}`);
+        if (error.code === 'PGRST116') {
+          alert('You can only edit your own posts.');
+        } else {
+          alert(`Failed to update post: ${error.message}`);
+        }
+        return;
+      }
+      
+      if (!data || data.length === 0) {
+        console.error('No rows updated - checking if post exists');
+        
+        // Check if the post still exists
+        const { data: existingPost, error: checkError } = await supabase
+          .from('posts')
+          .select('id, author_name')
+          .eq('id', id)
+          .single();
+          
+        if (checkError || !existingPost) {
+          alert('This post no longer exists. It may have been deleted.');
+        } else if (existingPost.author_name !== currentUserName) {
+          alert('You can only edit your own posts.');
+        } else {
+          alert('Failed to update post. Please try again.');
+        }
         return;
       }
       
@@ -206,9 +231,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         }
         
         setIsEditing(false);
-      } else {
-        console.error('No data returned from update');
-        alert('Failed to update post: The post might have been deleted or is no longer available.');
       }
     } catch (error) {
       console.error('Network error updating post:', error);
