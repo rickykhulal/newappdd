@@ -77,6 +77,15 @@ export function Feed({ currentUserName }: FeedProps) {
     };
   };
 
+  const handlePostUpdate = (postId: string, updatedContent: string, updatedImageUrl?: string) => {
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId 
+          ? { ...post, content: updatedContent, image_url: updatedImageUrl || null }
+          : post
+      )
+    );
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -104,6 +113,7 @@ export function Feed({ currentUserName }: FeedProps) {
           imageUrl={post.image_url}
           createdAt={post.created_at}
           currentUserName={currentUserName}
+          onPostUpdate={handlePostUpdate}
         />
       ))}
     </div>

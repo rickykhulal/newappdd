@@ -9,6 +9,7 @@ interface PostProps {
   imageUrl?: string;
   createdAt: string;
   currentUserName: string;
+  onPostUpdate?: (postId: string, content: string, imageUrl?: string) => void;
 }
 
 interface Vote {
@@ -18,16 +19,23 @@ interface Vote {
   vote_type: 'true' | 'fake';
 }
 
-export function Post({ id, authorName, content, imageUrl, createdAt, currentUserName }: PostProps) {
+export function Post({ id, authorName, content, imageUrl, createdAt, currentUserName, onPostUpdate }: PostProps) {
+  const [currentContent, setCurrentContent] = useState(content);
+  const [currentImageUrl, setCurrentImageUrl] = useState(imageUrl);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [userVote, setUserVote] = useState<'true' | 'fake' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-  const [editImageUrl, setEditImageUrl] = useState(imageUrl || '');
+  const [editContent, setEditContent] = useState(currentContent);
+  const [editImageUrl, setEditImageUrl] = useState(currentImageUrl || '');
   const [isSaving, setIsSaving] = useState(false);
   const [optimisticVote, setOptimisticVote] = useState<'true' | 'fake' | null>(null);
 
+  // Update local state when props change (from real-time updates)
+  useEffect(() => {
+    setCurrentContent(content);
+    setCurrentImageUrl(imageUrl);
+  }, [content, imageUrl]);
   useEffect(() => {
     fetchVotes();
     const unsubscribe = subscribeToVotes();
@@ -145,14 +153,14 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditContent(content);
-    setEditImageUrl(imageUrl || '');
+    setEditContent(currentContent);
+    setEditImageUrl(currentImageUrl || '');
   };
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    setEditContent(content);
-    setEditImageUrl(imageUrl || '');
+    setEditContent(currentContent);
+    setEditImageUrl(currentImageUrl || '');
   };
 
   const handleSaveEdit = async () => {
@@ -179,7 +187,18 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         alert(`Failed to update post: ${error.message}`);
       } else {
         setIsEditing(false);
-        // Post will update via real-time subscription
+        // Update local state immediately for instant feedback
+        const newContent = editContent.trim();
+        const newImageUrl = editImageUrl.trim() || undefined;
+        setCurrentContent(newContent);
+        setCurrentImageUrl(newImageUrl);
+        
+        // Notify parent component to update its state
+        if (onPostUpdate) {
+          onPostUpdate(id, newContent, newImageUrl);
+        }
+        // Update local state immediately for instant feedback
+        // Real-time subscription will sync with other users
       }
     } catch (error) {
       console.error('Error updating post:', error);
@@ -293,11 +312,11 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           </div>
         ) : (
           <>
-            <p className="text-gray-900 leading-relaxed">{content}</p>
-            {imageUrl && (
+            <p className="text-gray-900 leading-relaxed">{currentContent}</p>
+            {currentImageUrl && (
               <div className="mt-4">
                 <img
-                  src={imageUrl}
+                  src={currentImageUrl}
                   alt="Post content"
                   className="rounded-lg max-w-full h-auto shadow-sm"
                   onError={(e) => {
