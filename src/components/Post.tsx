@@ -176,21 +176,22 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     try {
       console.log('Updating post:', { id, content: editContent.trim(), image_url: editImageUrl.trim() || null });
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .update({
           content: editContent.trim(),
           image_url: editImageUrl.trim() || null,
         })
         .eq('id', id)
-        .eq('author_name', currentUserName)
         .select();
 
       if (error) {
         console.error('Error updating post:', error);
-        alert(`Failed to update post: ${error.message || 'Unknown error'}`);
+        alert(`Failed to update post: ${error.message}`);
         return;
-      } else {
+      }
+      
+      if (data && data.length > 0) {
         console.log('Post updated successfully');
         
         // Update local state immediately for instant feedback
@@ -205,6 +206,9 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         }
         
         setIsEditing(false);
+      } else {
+        console.error('No data returned from update');
+        alert('Failed to update post: No data returned');
       }
     } catch (error) {
       console.error('Network error updating post:', error);
