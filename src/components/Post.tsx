@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, User, Edit3, Save, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, CreditCard as Edit3, Save, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface PostProps {
