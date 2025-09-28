@@ -90,10 +90,12 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
       if (error) {
         console.error('Error voting:', error);
-        alert('Failed to submit vote. Please try again.');
+        // Only show error for actual failures, not constraint violations from duplicate votes
+        if (error.code !== '23505') {
+          alert('Failed to submit vote. Please try again.');
+        }
       } else {
         console.log('Vote submitted successfully');
-        // The real-time subscription will handle updating the UI
       }
     } catch (error) {
       console.error('Error voting:', error);
