@@ -36,6 +36,12 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
   const fetchVotes = async () => {
     try {
+      // Check if Supabase client is properly configured
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('votes')
         .select('*')
@@ -57,7 +63,9 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         }
       }
     } catch (error) {
-      console.error('Error fetching votes:', error);
+      console.error('Network error fetching votes:', error);
+      // Silently fail for network errors to avoid disrupting user experience
+      // The component will still function with empty votes array
     }
   };
 
