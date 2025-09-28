@@ -112,21 +112,22 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     setIsDeleting(true);
     try {
       console.log('Attempting to delete post:', id);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('author_name', currentUserName); // Extra security check
 
       if (error) {
         console.error('Error deleting post:', error);
-        alert(`Failed to delete post: ${error.message}`);
+        alert('Failed to delete post. Please try again.');
       } else {
-        console.log('Post deleted successfully');
-        alert('Post deleted successfully!');
+        console.log('Post deleted successfully:', data);
+        // Post will disappear via real-time subscription
       }
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert(`An unexpected error occurred: ${error}`);
+      alert('An unexpected error occurred. Please try again.');
     } finally {
       setIsDeleting(false);
     }

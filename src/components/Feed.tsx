@@ -55,7 +55,14 @@ export function Feed({ currentUserName }: FeedProps) {
         },
         (payload) => {
           console.log('Real-time update received:', payload.eventType, payload);
-          fetchPosts();
+          
+          if (payload.eventType === 'DELETE') {
+            // Remove the deleted post immediately from local state
+            setPosts(prevPosts => prevPosts.filter(post => post.id !== payload.old.id));
+          } else {
+            // For INSERT and UPDATE, refetch all posts
+            fetchPosts();
+          }
         }
       )
       .subscribe();
