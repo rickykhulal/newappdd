@@ -141,17 +141,16 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     setIsDeleting(true);
     try {
       console.log('Attempting to delete post:', id);
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('posts')
         .delete()
-        .eq('id', id)
-        .eq('author_name', currentUserName); // Extra security check
+        .eq('id', id);
 
       if (error) {
         console.error('Error deleting post:', error);
-        alert('Failed to delete post. Please try again.');
+        alert(`Failed to delete post: ${error.message}`);
       } else {
-        console.log('Post deleted successfully:', data);
+        console.log('Post deleted successfully');
         // Post will disappear via real-time subscription
       }
     } catch (error) {
