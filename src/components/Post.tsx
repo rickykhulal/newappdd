@@ -96,6 +96,8 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         }
       } else {
         console.log('Vote submitted successfully');
+        // Immediately update the UI state to prevent duplicate votes
+        setUserVote(voteType);
       }
     } catch (error) {
       console.error('Error voting:', error);
