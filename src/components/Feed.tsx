@@ -54,7 +54,7 @@ export function Feed({ currentUserName }: FeedProps) {
           table: 'posts',
         },
         (payload) => {
-          console.log('Real-time update received:', payload);
+          console.log('Real-time update received:', payload.eventType, payload);
           fetchPosts();
         }
       )

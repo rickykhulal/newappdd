@@ -111,6 +111,7 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
     setIsDeleting(true);
     try {
+      console.log('Attempting to delete post:', id);
       const { error } = await supabase
         .from('posts')
         .delete()
@@ -118,14 +119,14 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
       if (error) {
         console.error('Error deleting post:', error);
-        alert('Failed to delete post. Please try again.');
+        alert(`Failed to delete post: ${error.message}`);
       } else {
         console.log('Post deleted successfully');
-        // The real-time subscription in Feed will handle removing it from the UI
+        alert('Post deleted successfully!');
       }
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('An unexpected error occurred. Please try again.');
+      alert(`An unexpected error occurred: ${error}`);
     } finally {
       setIsDeleting(false);
     }
