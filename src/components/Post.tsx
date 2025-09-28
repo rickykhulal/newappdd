@@ -208,7 +208,7 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         setIsEditing(false);
       } else {
         console.error('No data returned from update');
-        alert('Failed to update post: No data returned');
+        alert('Failed to update post: The post might have been deleted or is no longer available.');
       }
     } catch (error) {
       console.error('Network error updating post:', error);
