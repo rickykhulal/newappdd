@@ -10,11 +10,15 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'https://placeholder.sup
   // Create a mock client that won't crash the app
   supabase = {
     from: () => ({
-      select: () => Promise.resolve({ data: [], error: null }),
-      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
-      upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+      select: function() { return this; },
+      insert: function() { return this; },
+      upsert: function() { return this; },
       eq: function() { return this; },
-      order: function() { return this; }
+      order: function() { return this; },
+      then: function(resolve: any) {
+        resolve({ data: [], error: null });
+        return Promise.resolve({ data: [], error: null });
+      }
     }),
     channel: () => ({
       on: function() { return this; },
