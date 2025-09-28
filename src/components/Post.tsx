@@ -36,6 +36,7 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     setCurrentContent(content);
     setCurrentImageUrl(imageUrl);
   }, [content, imageUrl]);
+  
   useEffect(() => {
     fetchVotes();
     const unsubscribe = subscribeToVotes();
@@ -189,22 +190,22 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
         console.error('Error updating post:', error);
         alert(`Failed to update post: ${error.message || 'Unknown error'}`);
         return;
+      } else {
+        console.log('Post updated successfully');
+        
+        // Update local state immediately for instant feedback
+        const newContent = editContent.trim();
+        const newImageUrl = editImageUrl.trim() || undefined;
+        setCurrentContent(newContent);
+        setCurrentImageUrl(newImageUrl);
+        
+        // Notify parent component to update its state
+        if (onPostUpdate) {
+          onPostUpdate(id, newContent, newImageUrl);
+        }
+        
+        setIsEditing(false);
       }
-      
-      console.log('Post updated successfully');
-      
-      // Update local state immediately for instant feedback
-      const newContent = editContent.trim();
-      const newImageUrl = editImageUrl.trim() || undefined;
-      setCurrentContent(newContent);
-      setCurrentImageUrl(newImageUrl);
-      
-      // Notify parent component to update its state
-      if (onPostUpdate) {
-        onPostUpdate(id, newContent, newImageUrl);
-      }
-      
-      setIsEditing(false);
     } catch (error) {
       console.error('Network error updating post:', error);
       alert('Network error occurred. Please check your connection and try again.');
@@ -219,28 +220,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     setCurrentContent(content);
     setCurrentImageUrl(imageUrl);
   }, [content, imageUrl, id]);
-      } else {
-        setIsEditing(false);
-        // Update local state immediately for instant feedback
-        const newContent = editContent.trim();
-        const newImageUrl = editImageUrl.trim() || undefined;
-        setCurrentContent(newContent);
-        setCurrentImageUrl(newImageUrl);
-        
-        // Notify parent component to update its state
-        if (onPostUpdate) {
-          onPostUpdate(id, newContent, newImageUrl);
-        }
-        // Update local state immediately for instant feedback
-        // Real-time subscription will sync with other users
-      }
-    } catch (error) {
-      console.error('Error updating post:', error);
-      alert('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Calculate votes with optimistic updates
   const currentUserVote = optimisticVote || userVote;
