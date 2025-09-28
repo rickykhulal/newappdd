@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, User, CreditCard as Edit3, Save, X } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, Brain } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { AnalysisModal } from './AnalysisModal';
+import { getAnalysis, CombinedAnalysis } from '../lib/analyzer';
 
 interface PostProps {
   id: string;
@@ -25,11 +27,10 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
   const [votes, setVotes] = useState<Vote[]>([]);
   const [userVote, setUserVote] = useState<'true' | 'fake' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(currentContent);
-  const [editImageUrl, setEditImageUrl] = useState(currentImageUrl || '');
-  const [isSaving, setIsSaving] = useState(false);
   const [optimisticVote, setOptimisticVote] = useState<'true' | 'fake' | null>(null);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [analysis, setAnalysis] = useState<CombinedAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Update local state when props change (from real-time updates)
   useEffect(() => {
@@ -152,100 +153,22 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     }
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-    setEditContent(currentContent);
-    setEditImageUrl(currentImageUrl || '');
-  };
-
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setEditContent(currentContent);
-    setEditImageUrl(currentImageUrl || '');
-  };
-
-  const handleSaveEdit = async () => {
-    if (authorName !== currentUserName) return;
+  const handleAnalyze = async () => {
+    setShowAnalysisModal(true);
+    setIsAnalyzing(true);
+    setAnalysis(null);
     
-    if (!editContent.trim()) {
-      alert('Post content cannot be empty.');
-      return;
-    }
-
-    setIsSaving(true);
     try {
-      console.log('Updating post:', { id, content: editContent.trim(), image_url: editImageUrl.trim() || null });
-      
-      const { data, error, count } = await supabase
-        .from('posts')
-        .update({
-          content: editContent.trim(),
-          image_url: editImageUrl.trim() || null,
-        })
-        .eq('id', id)
-        .eq('author_name', currentUserName)
-        .select();
-
-      if (error) {
-        console.error('Error updating post:', error);
-        if (error.code === 'PGRST116') {
-          alert('You can only edit your own posts.');
-        } else {
-          alert(`Failed to update post: ${error.message}`);
-        }
-        return;
-      }
-      
-      if (!data || data.length === 0) {
-        console.error('No rows updated - checking if post exists');
-        
-        // Check if the post still exists
-        const { data: existingPost, error: checkError } = await supabase
-          .from('posts')
-          .select('id, author_name')
-          .eq('id', id)
-          .single();
-          
-        if (checkError || !existingPost) {
-          alert('This post no longer exists. It may have been deleted.');
-        } else if (existingPost.author_name !== currentUserName) {
-          alert('You can only edit your own posts.');
-        } else {
-          alert('Failed to update post. Please try again.');
-        }
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        console.log('Post updated successfully');
-        
-        // Update local state immediately for instant feedback
-        const newContent = editContent.trim();
-        const newImageUrl = editImageUrl.trim() || undefined;
-        setCurrentContent(newContent);
-        setCurrentImageUrl(newImageUrl);
-        
-        // Notify parent component to update its state
-        if (onPostUpdate) {
-          onPostUpdate(id, newContent, newImageUrl);
-        }
-        
-        setIsEditing(false);
-      }
+      console.log('Analyzing post:', { id, content: currentContent.trim(), image_url: currentImageUrl?.trim() || null });
+      const result = await getAnalysis(currentContent, currentImageUrl);
+      setAnalysis(result);
     } catch (error) {
-      console.error('Network error updating post:', error);
-      alert('Network error occurred. Please check your connection and try again.');
+      console.error('Analysis failed:', error);
+      setAnalysis(null);
     } finally {
-      setIsSaving(false);
+      setIsAnalyzing(false);
     }
   };
-
-  // Add debugging for real-time updates
-  useEffect(() => {
-    console.log('Post props updated:', { id, content, imageUrl });
-    setCurrentContent(content);
-    setCurrentImageUrl(imageUrl);
-  }, [content, imageUrl, id]);
 
   // Calculate votes with optimistic updates
   const currentUserVote = optimisticVote || userVote;
@@ -287,6 +210,15 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           </div>
         </div>
         
+        {/* AI Analyzer Button */}
+        <button
+          onClick={handleAnalyze}
+          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
+          disabled={isAnalyzing}
+        >
+          <Brain className="w-4 h-4 mr-2" />
+          {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+        </button>
       </div>
 
       <div className="mb-4">
@@ -347,6 +279,21 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           )}
         </div>
       </div>
+
+      {/* Analysis Modal */}
+      <AnalysisModal
+        isOpen={showAnalysisModal}
+        onClose={() => setShowAnalysisModal(false)}
+        analysis={analysis}
+        isLoading={isAnalyzing}
+        postContent={currentContent}
+        imageUrl={currentImageUrl}
+        onRegenerate={handleAnalyze}
+        communityVotes={{
+          trueVotes,
+          fakeVotes
+        }}
+      />
     </div>
   );
 }
