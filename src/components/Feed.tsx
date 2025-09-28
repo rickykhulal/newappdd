@@ -57,11 +57,15 @@ export function Feed({ currentUserName }: FeedProps) {
           console.log('Real-time update received:', payload.eventType, payload);
           
           if (payload.eventType === 'DELETE') {
-            // Remove the deleted post immediately from local state
             setPosts(prevPosts => prevPosts.filter(post => post.id !== payload.old.id));
-          } else {
-            // For INSERT and UPDATE, refetch all posts
-            fetchPosts();
+          } else if (payload.eventType === 'INSERT') {
+            setPosts(prevPosts => [payload.new as PostData, ...prevPosts]);
+          } else if (payload.eventType === 'UPDATE') {
+            setPosts(prevPosts => 
+              prevPosts.map(post => 
+                post.id === payload.new.id ? payload.new as PostData : post
+              )
+            );
           }
         }
       )

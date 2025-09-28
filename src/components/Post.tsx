@@ -23,6 +23,7 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
   const [userVote, setUserVote] = useState<'true' | 'fake' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [optimisticVote, setOptimisticVote] = useState<'true' | 'fake' | null>(null);
 
   useEffect(() => {
     fetchVotes();
@@ -45,7 +46,12 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
       if (data) {
         setVotes(data);
         const existingVote = data.find(vote => vote.user_name === currentUserName);
-        setUserVote(existingVote?.vote_type || null);
+        const actualVote = existingVote?.vote_type || null;
+        setUserVote(actualVote);
+        // Clear optimistic vote if it matches the actual vote
+        if (optimisticVote === actualVote) {
+          setOptimisticVote(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching votes:', error);
@@ -63,9 +69,26 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           table: 'votes',
           filter: `post_id=eq.${id}`,
         },
-        () => {
+        (payload) => {
           console.log('Vote update received for post:', id);
-          fetchVotes();
+          
+          if (payload.eventType === 'INSERT') {
+            const newVote = payload.new as Vote;
+            setVotes(prevVotes => [...prevVotes, newVote]);
+            
+            if (newVote.user_name === currentUserName) {
+              setUserVote(newVote.vote_type);
+              setOptimisticVote(null);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const deletedVote = payload.old as Vote;
+            setVotes(prevVotes => prevVotes.filter(vote => vote.id !== deletedVote.id));
+            
+            if (deletedVote.user_name === currentUserName) {
+              setUserVote(null);
+              setOptimisticVote(null);
+            }
+          }
         }
       )
       .subscribe();
@@ -76,9 +99,12 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
   };
 
   const handleVote = async (voteType: 'true' | 'fake') => {
-    if (isVoting || userVote) return;
+    if (isVoting || userVote || optimisticVote) return;
 
+    // Optimistic update
+    setOptimisticVote(voteType);
     setIsVoting(true);
+    
     try {
       const { error } = await supabase
         .from('votes')
@@ -90,17 +116,16 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
       if (error) {
         console.error('Error voting:', error);
+        // Revert optimistic update on error
+        setOptimisticVote(null);
         // Only show error for actual failures, not constraint violations from duplicate votes
         if (error.code !== '23505') {
           alert('Failed to submit vote. Please try again.');
         }
-      } else {
-        console.log('Vote submitted successfully');
-        // Immediately update the UI state to prevent duplicate votes
-        setUserVote(voteType);
       }
     } catch (error) {
       console.error('Error voting:', error);
+      setOptimisticVote(null);
       alert('An unexpected error occurred. Please try again.');
     } finally {
       setIsVoting(false);
@@ -137,8 +162,16 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     }
   };
 
-  const trueVotes = votes.filter(vote => vote.vote_type === 'true').length;
-  const fakeVotes = votes.filter(vote => vote.vote_type === 'fake').length;
+  // Calculate votes with optimistic updates
+  const currentUserVote = optimisticVote || userVote;
+  const baseVotes = votes.filter(vote => vote.user_name !== currentUserName);
+  
+  let trueVotes = baseVotes.filter(vote => vote.vote_type === 'true').length;
+  let fakeVotes = baseVotes.filter(vote => vote.vote_type === 'fake').length;
+  
+  // Add current user's vote (actual or optimistic)
+  if (currentUserVote === 'true') trueVotes++;
+  if (currentUserVote === 'fake') fakeVotes++;
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -202,11 +235,11 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           <div className="flex items-center space-x-4">
             <button
               onClick={() => handleVote('true')}
-              disabled={isVoting || userVote !== null}
+              disabled={isVoting || currentUserVote !== null}
               className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                userVote === 'true'
+                currentUserVote === 'true'
                   ? 'bg-green-100 text-green-700 border-2 border-green-300'
-                  : userVote
+                  : currentUserVote
                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   : 'bg-green-50 text-green-600 hover:bg-green-100 border border-green-200'
               }`}
@@ -217,11 +250,11 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
             <button
               onClick={() => handleVote('fake')}
-              disabled={isVoting || userVote !== null}
+              disabled={isVoting || currentUserVote !== null}
               className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                userVote === 'fake'
+                currentUserVote === 'fake'
                   ? 'bg-red-100 text-red-700 border-2 border-red-300'
-                  : userVote
+                  : currentUserVote
                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
               }`}
@@ -231,9 +264,10 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
             </button>
           </div>
 
-          {userVote && (
+          {currentUserVote && (
             <div className="text-sm text-gray-500">
-              You voted: {userVote === 'true' ? 'True' : 'Fake'}
+              You voted: {currentUserVote === 'true' ? 'True' : 'Fake'}
+              {optimisticVote && <span className="ml-1 opacity-60">(pending...)</span>}
             </div>
           )}
         </div>

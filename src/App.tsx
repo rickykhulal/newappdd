@@ -58,8 +58,6 @@ function App() {
       if (error) {
         console.error('Error creating post:', error);
         alert('Failed to create post. Please try again.');
-      } else {
-        console.log('Post created successfully:', data);
       }
     } catch (error) {
       console.error('Error:', error);
