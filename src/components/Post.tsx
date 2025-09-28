@@ -173,6 +173,8 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
 
     setIsSaving(true);
     try {
+      console.log('Updating post:', { id, content: editContent.trim(), image_url: editImageUrl.trim() || null });
+      
       const { error } = await supabase
         .from('posts')
         .update({
@@ -180,11 +182,43 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           image_url: editImageUrl.trim() || null,
         })
         .eq('id', id)
-        .eq('author_name', currentUserName);
+        .eq('author_name', currentUserName)
+        .select();
 
       if (error) {
         console.error('Error updating post:', error);
-        alert(`Failed to update post: ${error.message}`);
+        alert(`Failed to update post: ${error.message || 'Unknown error'}`);
+        return;
+      }
+      
+      console.log('Post updated successfully');
+      
+      // Update local state immediately for instant feedback
+      const newContent = editContent.trim();
+      const newImageUrl = editImageUrl.trim() || undefined;
+      setCurrentContent(newContent);
+      setCurrentImageUrl(newImageUrl);
+      
+      // Notify parent component to update its state
+      if (onPostUpdate) {
+        onPostUpdate(id, newContent, newImageUrl);
+      }
+      
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Network error updating post:', error);
+      alert('Network error occurred. Please check your connection and try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Add debugging for real-time updates
+  useEffect(() => {
+    console.log('Post props updated:', { id, content, imageUrl });
+    setCurrentContent(content);
+    setCurrentImageUrl(imageUrl);
+  }, [content, imageUrl, id]);
       } else {
         setIsEditing(false);
         // Update local state immediately for instant feedback
