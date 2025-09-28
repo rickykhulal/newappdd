@@ -287,84 +287,21 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           </div>
         </div>
         
-        {authorName === currentUserName && (
-          <div className="flex items-center space-x-2">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={isSaving}
-                  className="text-gray-400 hover:text-green-500 transition-colors p-2 rounded-lg hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Save changes"
-                >
-                  <Save className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={isSaving}
-                  className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Cancel editing"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleEdit}
-                className="text-gray-400 hover:text-blue-500 transition-colors p-2 rounded-lg hover:bg-blue-50"
-                title="Edit post"
-              >
-                <Edit3 className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="mb-4">
-        {isEditing ? (
-          <div className="space-y-4">
-            <div>
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                rows={3}
-                maxLength={500}
-                placeholder="Edit your post..."
-              />
-              <div className="flex justify-between items-center mt-2">
-                <span className="text-sm text-gray-500">
-                  {editContent.length}/500 characters
-                </span>
-              </div>
-            </div>
-            <div>
-              <input
-                type="url"
-                value={editImageUrl}
-                onChange={(e) => setEditImageUrl(e.target.value)}
-                placeholder="Image URL (optional)"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              />
-            </div>
+        <p className="text-gray-900 leading-relaxed">{currentContent}</p>
+        {currentImageUrl && (
+          <div className="mt-4">
+            <img
+              src={currentImageUrl}
+              alt="Post content"
+              className="rounded-lg max-w-full h-auto shadow-sm"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
-        ) : (
-          <>
-            <p className="text-gray-900 leading-relaxed">{currentContent}</p>
-            {currentImageUrl && (
-              <div className="mt-4">
-                <img
-                  src={currentImageUrl}
-                  alt="Post content"
-                  className="rounded-lg max-w-full h-auto shadow-sm"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-          </>
         )}
       </div>
 
