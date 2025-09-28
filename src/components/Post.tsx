@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Clock, User, Brain } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { AnalysisModal } from './AnalysisModal';
-import { getAnalysis, CombinedAnalysis } from '../lib/analyzer';
 
 interface PostProps {
   id: string;
@@ -28,9 +26,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
   const [userVote, setUserVote] = useState<'true' | 'fake' | null>(null);
   const [isVoting, setIsVoting] = useState(false);
   const [optimisticVote, setOptimisticVote] = useState<'true' | 'fake' | null>(null);
-  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
-  const [analysis, setAnalysis] = useState<CombinedAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // Update local state when props change (from real-time updates)
   useEffect(() => {
@@ -153,23 +148,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
     }
   };
 
-  const handleAnalyze = async () => {
-    setShowAnalysisModal(true);
-    setIsAnalyzing(true);
-    setAnalysis(null);
-    
-    try {
-      console.log('Analyzing post:', { id, content: currentContent.trim(), image_url: currentImageUrl?.trim() || null });
-      const result = await getAnalysis(currentContent, currentImageUrl);
-      setAnalysis(result);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-      setAnalysis(null);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   // Calculate votes with optimistic updates
   const currentUserVote = optimisticVote || userVote;
   const baseVotes = votes.filter(vote => vote.user_name !== currentUserName);
@@ -209,16 +187,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
             </div>
           </div>
         </div>
-        
-        {/* AI Analyzer Button */}
-        <button
-          onClick={handleAnalyze}
-          className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center text-sm"
-          disabled={isAnalyzing}
-        >
-          <Brain className="w-4 h-4 mr-2" />
-          {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
-        </button>
       </div>
 
       <div className="mb-4">
@@ -279,21 +247,6 @@ export function Post({ id, authorName, content, imageUrl, createdAt, currentUser
           )}
         </div>
       </div>
-
-      {/* Analysis Modal */}
-      <AnalysisModal
-        isOpen={showAnalysisModal}
-        onClose={() => setShowAnalysisModal(false)}
-        analysis={analysis}
-        isLoading={isAnalyzing}
-        postContent={currentContent}
-        imageUrl={currentImageUrl}
-        onRegenerate={handleAnalyze}
-        communityVotes={{
-          trueVotes,
-          fakeVotes
-        }}
-      />
     </div>
   );
 }
