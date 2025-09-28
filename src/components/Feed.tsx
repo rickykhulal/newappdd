@@ -61,6 +61,7 @@ export function Feed({ currentUserName }: FeedProps) {
           } else if (payload.eventType === 'INSERT') {
             setPosts(prevPosts => [payload.new as PostData, ...prevPosts]);
           } else if (payload.eventType === 'UPDATE') {
+            console.log('Post updated via real-time:', payload.new);
             setPosts(prevPosts => 
               prevPosts.map(post => 
                 post.id === payload.new.id ? payload.new as PostData : post
